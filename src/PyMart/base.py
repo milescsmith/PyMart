@@ -150,7 +150,6 @@ Created on Wed Jan 11 14:52:39 2023
 @author: ivanp
 """
 
-
 from dataclasses import dataclass, field
 from typing import Dict, List
 from xml.etree import ElementTree
@@ -167,6 +166,7 @@ class Base:
     """
     Base class for all others
     """
+
     host: str = "http://www.ensembl.org"
     path: str = "/biomart/martservice"
     port: int = 80
@@ -202,6 +202,7 @@ class DataBase(Base):
         contained in oen base
 
     """
+
     name: str = ""
     display_name: str = ""
     _datasets: pd.DataFrame = field(init=False)
@@ -214,11 +215,14 @@ class DataBase(Base):
         dataset constructor
         """
         if self.name:
-            response = self.get(type='datasets', mart=self.name)
+            response = self.get(type="datasets", mart=self.name)
 
             # Read result frame from response.
-            result = pd.read_csv(StringIO(response.text), sep='\t',
-                                 header=None, )[[1, 2]]
+            result = pd.read_csv(
+                StringIO(response.text),
+                sep="\t",
+                header=None,
+            )[[1, 2]]
 
             result.columns = ["name", "display_name"]
             return result
@@ -246,12 +250,13 @@ class DataBase(Base):
                 raise ValueError("No name for a given database")
             raise ValueError("No datasets found for name")
 
-        result = ds[ds.display_name.str.contains(specie, case=False, regex=True) |
-                    ds["name"].str.contains(specie, case=False, regex=True)]
+        result = ds[
+            ds.display_name.str.contains(specie, case=False, regex=True)
+            | ds["name"].str.contains(specie, case=False, regex=True)
+        ]
         if len(result) == 0:
             specie = specie.replace("_", " ")
-            result = ds[ds.display_name.str.contains(
-                specie, case=False, regex=True)]
+            result = ds[ds.display_name.str.contains(specie, case=False, regex=True)]
         if len(result) == 0:
             raise ValueError(f"Database does not contain '{specie}'")
         return result
@@ -262,8 +267,7 @@ class DataBase(Base):
         """
         df = self.find_species(specie)
         for _, row in df.iterrows():
-            print(
-                f"Display name '{row.display_name}' corresponds to '{row['name']}'")
+            print(f"Display name '{row.display_name}' corresponds to '{row['name']}'")
         return df
 
 
@@ -274,15 +278,15 @@ class FrontBase(Base):
     This class contains all BioMart databases.
     """
 
-    xml_map: Dict[str, str] = field(default_factory=lambda:
-                                    {
-                                        "name": "name",
-                                        "display_name": "displayName",
-                                        "host": "host",
-                                        "path": "path",
-                                        "virtual_schema": "serverVirtualSchema"
-                                    }
-                                    )
+    xml_map: Dict[str, str] = field(
+        default_factory=lambda: {
+            "name": "name",
+            "display_name": "displayName",
+            "host": "host",
+            "path": "path",
+            "virtual_schema": "serverVirtualSchema",
+        }
+    )
     _databases: List[DataBase] = field(default_factory=list)
 
     @property
@@ -296,7 +300,7 @@ class FrontBase(Base):
         """Constructor function for databases (1/2)"""
         r = self.get(type="registry")
         xml = ElementTree.fromstring(r.content)
-        return [self._db_from_xml(node) for node in xml.findall('MartURLLocation')]
+        return [self._db_from_xml(node) for node in xml.findall("MartURLLocation")]
 
     def _db_from_xml(self, node):
         """Constructor function for databases (2/2)"""
@@ -308,10 +312,11 @@ class FrontBase(Base):
         return self.databases
 
     def print_databases(self):
-        """Prints out all databases """
+        """Prints out all databases"""
         for _, row in self.databases.iterrows():
             print(
-                f"""Display name '{row.display_name}' corresponds to '{row["name"]}'""")
+                f"""Display name '{row.display_name}' corresponds to '{row["name"]}'"""
+            )
         return self.list_databases()
 
 
@@ -322,6 +327,7 @@ class Attribute:
     a particular dataset. Used to construct
     attributes dataframe quickly.
     """
+
     name: str
     display_name: str
     description: str
@@ -335,6 +341,7 @@ class Filter:
     a particular dataset. Used to construct
     attributes dataframe quickly.
     """
+
     name: str
     display_name: str
     description: str
@@ -348,9 +355,9 @@ class Filter:
         Explains filter - prints out what the filter does
         """
         print(
-            f"Filter's display name is '{self.display_name}' and its internal name is '{self.name}'")
-        print(
-            f"Filter's operator is '{self.operator}' and its type is '{self.type}'")
+            f"Filter's display name is '{self.display_name}' and its internal name is '{self.name}'"
+        )
+        print(f"Filter's operator is '{self.operator}' and its type is '{self.type}'")
         if self.sub_options and print_options:
             print("It has sub options:")
             print(self.options.to_string(index=False, justify="center"))
@@ -375,6 +382,7 @@ class DataSet(Base):
             other species
 
     """
+
     name: str = ""
     display_name: str = ""
     _config_xml: object = None
@@ -394,7 +402,7 @@ class DataSet(Base):
 
     def _get_config_xml(self):
         """Constructor for config_xml file"""
-        r = self.get(type='configuration', dataset=self.name)
+        r = self.get(type="configuration", dataset=self.name)
         if "Problem retrieving configuration" in r.text:
             raise KeyError("Problem retrieving configuration")
         return ElementTree.fromstring(r.content)
@@ -430,13 +438,14 @@ class DataSet(Base):
         for page_index, page in enumerate(self.config_xml.iter("AttributePage")):
             for desc in page.iter("AttributeDescription"):
                 attrib = desc.attrib
-                is_default = (attrib.get("default", "") ==
-                              "true") and (page_index == 0)
+                is_default = (attrib.get("default", "") == "true") and (page_index == 0)
 
-                at = Attribute(name=attrib['internalName'],
-                               display_name=attrib.get('displayName', ''),
-                               description=attrib.get('description', ''),
-                               default=is_default)
+                at = Attribute(
+                    name=attrib["internalName"],
+                    display_name=attrib.get("displayName", ""),
+                    description=attrib.get("description", ""),
+                    default=is_default,
+                )
                 self._attributes.append(at)
         return self._attributes
 
@@ -446,25 +455,24 @@ class DataSet(Base):
             return self._filters
 
         for node in self.config_xml.iter("FilterDescription"):
-
             attrib = node.attrib
             # check for submenus
             if len(list(node)) == 0:
                 options = pd.DataFrame()
                 sub_options = False
             else:
-                options = pd.DataFrame(
-                    [sub_el.attrib for sub_el in list(node)])
+                options = pd.DataFrame([sub_el.attrib for sub_el in list(node)])
                 sub_options = True
 
-            ft = Filter(name=attrib["internalName"],
-                        type=attrib.get("type", ""),
-                        description=attrib.get("description", ""),
-                        display_name=attrib.get("displayName", ""),
-                        operator=attrib.get("qualifier", ""),
-                        sub_options=sub_options,
-                        options=options
-                        )
+            ft = Filter(
+                name=attrib["internalName"],
+                type=attrib.get("type", ""),
+                description=attrib.get("description", ""),
+                display_name=attrib.get("displayName", ""),
+                operator=attrib.get("qualifier", ""),
+                sub_options=sub_options,
+                options=options,
+            )
             self._filters.append(ft)
         return self._filters
 
@@ -473,8 +481,9 @@ class DataSet(Base):
         if len(self._homology) > 0 and not force:
             return self._homology
 
-        homology_dataset = self.attributes[self.attributes.name.str.contains(
-            "homolog")].copy()
+        homology_dataset = self.attributes[
+            self.attributes.name.str.contains("homolog")
+        ].copy()
 
         def match_homology(string):
             match = re.match("(?P<spc>[^_]*)_homolog_(?P<wht>.*$)", string)
@@ -483,22 +492,27 @@ class DataSet(Base):
                 return groups["spc"], groups["wht"]
             return None, None
 
-        homology_dataset[["specie_name", "qualifier_name"]] = homology_dataset.apply(lambda row: match_homology(row["name"]),
-                                                                                     axis=1, result_type="expand")
-        homology_dataset = homology_dataset[~(
-            homology_dataset.specie_name.isna())]
+        homology_dataset[["specie_name", "qualifier_name"]] = homology_dataset.apply(
+            lambda row: match_homology(row["name"]), axis=1, result_type="expand"
+        )
+        homology_dataset = homology_dataset[~(homology_dataset.specie_name.isna())]
         homology_dataset.drop(["description", "default"], axis=1, inplace=True)
 
-        _sep = homology_dataset.loc[homology_dataset.qualifier_name == "ensembl_gene"].copy(
-        )
+        _sep = homology_dataset.loc[
+            homology_dataset.qualifier_name == "ensembl_gene"
+        ].copy()
         _sep["display_name"] = _sep["display_name"].str.replace(
-            "gene stable ID", "", regex=False)
+            "gene stable ID", "", regex=False
+        )
 
         species_mapper = dict(zip(_sep["specie_name"], _sep["display_name"]))
         homology_dataset["specie_display_name"] = homology_dataset["specie_name"].map(
-            species_mapper)
-        homology_dataset["qualifier_display_name"] = homology_dataset.apply(lambda row: row["display_name"].replace(row["specie_display_name"], ""),
-                                                                            axis=1)
+            species_mapper
+        )
+        homology_dataset["qualifier_display_name"] = homology_dataset.apply(
+            lambda row: row["display_name"].replace(row["specie_display_name"], ""),
+            axis=1,
+        )
         self._homology = homology_dataset
 
     def print_attributes(self):
@@ -515,8 +529,9 @@ class DataSet(Base):
         or a index correspoding to filter's location in dataframe
         """
         if isinstance(index, str):
-            select = self.filters[(self.filters.name == index) |
-                                  (self.filters.display_name == index)]
+            select = self.filters[
+                (self.filters.name == index) | (self.filters.display_name == index)
+            ]
             if len(select) == 0:
                 raise ValueError(f"No filter for name '{index}'")
             index = select.index.values[0]
@@ -542,7 +557,8 @@ class DataSet(Base):
             value = filter_query.get(filter_row["display_name"], None)
         if value is None:
             raise ValueError(
-                f"""There is no value specified for key '{filter_row["name"]}'""")
+                f"""There is no value specified for key '{filter_row["name"]}'"""
+            )
 
         ft_el = ElementTree.SubElement(subelem, "Filter")
         ft_el.set("name", filter_row["name"])
@@ -606,32 +622,38 @@ class DataSet(Base):
         query.set("uniqueRows", str(int(only_unique)))
         query.set("datasetConfigVersion", "0.6")
 
-        dataset = ElementTree.SubElement(query, 'Dataset')
-        dataset.set('name', self.name)
-        dataset.set('interface', 'default')
+        dataset = ElementTree.SubElement(query, "Dataset")
+        dataset.set("name", self.name)
+        dataset.set("interface", "default")
 
         if attributes is None:
             attributes = self.attributes[self.attributes.default]
         else:
-            attributes = self.attributes[(self.attributes.name.isin(attributes)) |
-                                         (self.attributes.display_name.isin(attributes))]
+            attributes = self.attributes[
+                (self.attributes.name.isin(attributes))
+                | (self.attributes.display_name.isin(attributes))
+            ]
 
-        attributes = attributes["name"].apply(
-            self.add_attributes, subelem=dataset)
+        attributes = attributes["name"].apply(self.add_attributes, subelem=dataset)
 
         if filters is not None:
-            filter_df = self.filters[(self.filters.name.isin(filters.keys())) |
-                                     (self.filters.display_name.isin(filters.keys()))].copy()
-            filter_df.apply(self.add_filters, axis=1,
-                            filter_query=filters, subelem=dataset)
+            filter_df = self.filters[
+                (self.filters.name.isin(filters.keys()))
+                | (self.filters.display_name.isin(filters.keys()))
+            ].copy()
+            filter_df.apply(
+                self.add_filters, axis=1, filter_query=filters, subelem=dataset
+            )
         _s = perf_counter()
         r = self.get(query=ElementTree.tostring(query))
         _e = perf_counter()
         print(f"Dataset fetched in {_e-_s:.2f} seconds")
-        if 'Query ERROR' in r.text:
+        if "Query ERROR" in r.text:
             raise ValueError(r.text)
 
-        return pd.read_csv(StringIO(r.text),)
+        return pd.read_csv(
+            StringIO(r.text),
+        )
 
     def extract_homology_attributes(self, species, query):
         """
@@ -666,8 +688,10 @@ class DataSet(Base):
 
         result = list()
         for specie in species:
-            sp_df = hm[(hm.specie_name.str.contains(specie, case=False, regex=False)) | (
-                hm.specie_display_name.str.contains(specie, case=False, regex=False))]
+            sp_df = hm[
+                (hm.specie_name.str.contains(specie, case=False, regex=False))
+                | (hm.specie_display_name.str.contains(specie, case=False, regex=False))
+            ]
             result.append(sp_df)
 
         result = pd.concat(result, ignore_index=True)
